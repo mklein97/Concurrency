@@ -11,9 +11,19 @@ namespace Concurrency
 {
     class Program
     {
-        public static void BoxBlur(Bitmap img, ref byte[] pix, Color[,] pixels)
+        public static void BoxBlur(int imgW, int imgH, ref byte[] pix, Color[,] pixels)
         {
-            
+            var count = 0;
+            for (var i = 0; i < imgW; i++)
+            {
+                count += 3;
+                for (var j = 0; j < imgH; j++)
+                {
+                    pix[count] = pixels[i, j].R;
+                    pix[count + 1] = pixels[i, j].R;
+                    pix[count + 2] = pixels[i, j].R;
+                }
+            }
         }
 
         static void Main(string[] args)
@@ -41,7 +51,7 @@ namespace Concurrency
             byte[] pix = new byte[bdata.Stride * bdata.Height];
             Marshal.Copy(bdata.Scan0, pix, 0, pix.Length);
 
-            BoxBlur(img, ref pix, pixels);
+            BoxBlur(img.Width, img.Height, ref pix, pixels);
 
             //save a modified copy
             Marshal.Copy(pix, 0, bdata.Scan0, pix.Length);
