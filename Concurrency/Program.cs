@@ -11,25 +11,9 @@ namespace Concurrency
 {
     class Program
     {
-        public static void BoxBlur(Bitmap img, ref byte[] pixels)
+        public static void BoxBlur(Bitmap img, ref byte[] pix, Color[,] pixels)
         {
-            Color[,] pix = new Color[img.Width, img.Height];
-            for (int i = 0; i < img.Width; i++)
-            {
-                for (int j = 0; j < img.Height; j++)
-                    pix[i, j] = img.GetPixel(i, j);
-            }
-
-            for (int i = 0; i < img.Width; i++)
-            {
-                for (int j = 0; j < img.Height; j++)
-                {
-                    for (var count = 0; count < pixels.Length; count += 3)
-                    {
-
-                    }
-                }
-            }
+            
         }
 
         static void Main(string[] args)
@@ -42,14 +26,22 @@ namespace Concurrency
                 throw new ArgumentException("Must pass number of rounds of blurring as third argument!");
             string fname = args[0];
             Bitmap img = (Bitmap)Image.FromFile(fname);
-            Bitmap imgcpy = (Bitmap) Image.FromFile(fname);
+
+            //get x, y coordinates of each pixel
+            Color[,] pixels = new Color[img.Width, img.Height];
+            for (int i = 0; i < img.Width; i++)
+            {
+                for (int j = 0; j < img.Height; j++)
+                    pixels[i, j] = img.GetPixel(i, j);
+            }
+
             //convert image to byte array
             var bdata = img.LockBits(new Rectangle(0, 0, img.Width, img.Height),
                 ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
             byte[] pix = new byte[bdata.Stride * bdata.Height];
             Marshal.Copy(bdata.Scan0, pix, 0, pix.Length);
 
-            BoxBlur(imgcpy, ref pix);
+            BoxBlur(img, ref pix, pixels);
 
             //save a modified copy
             Marshal.Copy(pix, 0, bdata.Scan0, pix.Length);
