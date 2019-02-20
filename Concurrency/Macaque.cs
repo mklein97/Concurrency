@@ -8,15 +8,17 @@ public class Macaque
     {
         lock (M)
         {
-            while (isBaboons || numMacaques == MAX_MONKEYS)
+            while (STATE == BABOONS)
                 Monitor.Wait(M);
-        }
-
-        lock (M)
-        {
-            numMacaques++;
-            isBaboons = false;
-            Monitor.Pulse(M);
+            while (numMonkeys == MAX_MONKEYS)
+                Monitor.Wait(M);
+            if (numMonkeys == 0)
+            {
+                STATE = MACAQUES;
+                numMonkeys++;
+            }
+            else if (numMonkeys < MAX_MONKEYS)
+                numMonkeys++;
         }
     }
 
@@ -24,18 +26,18 @@ public class Macaque
     {
         lock (M)
         {
-            while (isBaboons || numMacaques == 0)
-                Monitor.Wait(M);
-        }
-
-        lock (M)
-        {
-            if (numMacaques != 0)
-                numMacaques--;
-            else
+            if (numMonkeys > 1)
+            {
+                numMonkeys--;
                 Monitor.PulseAll(M);
+            }
+            else if (numMonkeys == 1)
+            {
+                numMonkeys--;
+                STATE = NONE;
+                Monitor.PulseAll(M);
+            }
         }
     }
-
 }
 
