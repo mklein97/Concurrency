@@ -8,15 +8,17 @@ public class Baboon
     {
         lock (M)
         {
-            while (!isBaboons || numBaboons == MAX_MONKEYS)
+            while (STATE == MACAQUES)
                 Monitor.Wait(M);
-        }
-
-        lock (M)
-        {
-            numBaboons++;
-            isBaboons = true;
-            Monitor.Pulse(M);
+            while (numMonkeys == MAX_MONKEYS)
+                Monitor.Wait(M);
+            if (numMonkeys == 0)
+            {
+                STATE = BABOONS;
+                numMonkeys++;
+            }
+            else if (numMonkeys < MAX_MONKEYS)
+                numMonkeys++;
         }
     }
 
@@ -24,18 +26,18 @@ public class Baboon
     {
         lock (M)
         {
-            while (!isBaboons || numBaboons == 0)
-                Monitor.Wait(M);
-        }
-
-        lock (M)
-        {
-            if (numBaboons != 0)
-                numBaboons--;
-            else
+            if (numMonkeys > 1)
+            {
+                numMonkeys--;
                 Monitor.PulseAll(M);
+            }
+            else if (numMonkeys == 1)
+            {
+                numMonkeys--;
+                STATE = NONE;
+                Monitor.PulseAll(M);
+            }
         }
     }
-
 }
 

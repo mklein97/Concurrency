@@ -7,7 +7,10 @@ using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Text.RegularExpressions;
+using System.Windows.Forms;
+using System.Windows.Forms.VisualStyles;
 
 namespace Concurrency
 {
@@ -28,11 +31,13 @@ namespace Concurrency
         }
     }
 
-    class MainClass
+    class MainClass : Form
     {
         
         //guards all the static variables
         public static object L = new object();
+
+        static CancellationTokenSource tokenSource = new CancellationTokenSource();
 
         static List<DeadLinkInfo> deadLinks = new List<DeadLinkInfo>();
         
@@ -63,9 +68,12 @@ namespace Concurrency
                 string s = M.Groups[1].Value;
                 Uri next = new Uri(originator, s);
                 lock (L) { numWorking++; }
-                Task.Run(() => Download(next, distance + 1, originator));
+                var token = tokenSource.Token;
+                Task.Run(() => Download(next, distance + 1, originator), token);
             }
             lock (L) { numWorking--; }
+
+            //while (true) ;
         }
 
         static void Download(Uri u, int dist, Uri wherefrom)
@@ -83,12 +91,9 @@ namespace Concurrency
                 {
                     WebClient wc = new WebClient();
                     var s = wc.DownloadString(u);
-                    lock (L)
-                    {
-                        ++numWorking;
-                    }
-
-                    Task.Run(() => CPUTask(new CpuTaskData(s, dist, u)));
+                    lock (L){++numWorking;}
+                    var token = tokenSource.Token;
+                    Task.Run(() => CPUTask(new CpuTaskData(s, dist, u)), token);
                 }
                 catch (WebException)
                 {
@@ -111,15 +116,34 @@ namespace Concurrency
             }
         }
 
-        public static void Main(string[] args)
+        MainClass(string[] args)
         {
             initialUrl = new Uri(args[0]);
             maxDistance = Convert.ToInt32(args[1]);
 
+            Size = new Size(300, 200);
+
+            var b = new Button
+            {
+                Parent = this,
+                Text = "Cancel",
+                Anchor = AnchorStyles.None,
+                Enabled = true
+            };
+            b.Click += (sender, e) => {
+                tokenSource.Cancel();
+                Close();
+            };
+            b.Left = b.Parent.ClientSize.Width / 2 - b.Width / 2;
+            b.Top = b.Parent.ClientSize.Height / 2 - b.Height / 2;
+
+            Show();
+
             Console.WriteLine("Crawl " + initialUrl);
             Console.WriteLine("Distance: " + maxDistance);
 
-            Task.Run(() => Download(initialUrl, 0, initialUrl));
+            var token = tokenSource.Token;
+            Task.Run(() => Download(initialUrl, 0, initialUrl), token);
 
             lock (L)
             {
@@ -128,8 +152,14 @@ namespace Concurrency
             }
 
             Console.WriteLine("---------------------------------");
-            foreach(var x in deadLinks) 
-                Console.WriteLine(x.deadLink+" from "+x.whereFrom);
+            foreach (var x in deadLinks)
+                Console.WriteLine(x.deadLink + " from " + x.whereFrom);
+            Console.WriteLine("finished");
+        }
+
+        public static void Main(string[] args)
+        {
+            Application.Run(new MainClass(args));
         }
     }
 }
